@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Play, RotateCcw, Clock, ShieldCheck, Mic, ArrowRight } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { Play, RotateCcw, Clock, ShieldCheck, Mic, ArrowRight, CalendarClock } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { getActiveAssignment } from "@/features/student/api";
 import { PageHeader } from "@/components/common/PageHeader";
@@ -40,6 +41,11 @@ export function StudentExamHome() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={inProgress ? "warning" : "success"}>{inProgress ? "In progress" : "Ready to start"}</Badge>
               <span className="text-xs text-muted-foreground">Single attempt</span>
+              {exam.available_until && (
+                <span className="flex items-center gap-1 text-xs font-medium text-warning">
+                  <CalendarClock className="h-3.5 w-3.5" /> Closes {formatDistanceToNow(new Date(exam.available_until), { addSuffix: true })}
+                </span>
+              )}
             </div>
             <h2 className="mt-2 text-xl font-bold">{exam.title}</h2>
             {exam.description && <p className="mt-1 text-sm text-muted-foreground">{exam.description}</p>}

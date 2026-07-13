@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
-import { Plus, ClipboardList, Users, Copy, UserPlus, Check, FileText } from "lucide-react";
+import { Plus, ClipboardList, Users, Copy, UserPlus, Check, FileText, CalendarClock, CalendarX } from "lucide-react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   listExams,
@@ -33,7 +33,7 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toaster";
 import { EXAM_STATUS_LABELS } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn, fromLocalInputValue, toLocalInputValue, defaultDeadlineInput, isExpired } from "@/lib/utils";
 
 function CreateExamDialog({ orgId, createdBy, open, onOpenChange }: { orgId: string; createdBy: string; open: boolean; onOpenChange: (o: boolean) => void }) {
   const qc = useQueryClient();
@@ -41,6 +41,8 @@ function CreateExamDialog({ orgId, createdBy, open, onOpenChange }: { orgId: str
   const [templateId, setTemplateId] = React.useState("");
   const [title, setTitle] = React.useState("");
   const [status, setStatus] = React.useState<"active" | "draft" | "scheduled">("active");
+  const [availableFrom, setAvailableFrom] = React.useState("");
+  const [availableUntil, setAvailableUntil] = React.useState(defaultDeadlineInput(7));
 
   const publishable = (templatesQ.data ?? []).filter((t) => t.status === "published" && (t.exam_questions?.[0]?.count ?? 0) > 0);
   const selectedTemplate = publishable.find((t) => t.id === templateId);
@@ -52,13 +54,24 @@ function CreateExamDialog({ orgId, createdBy, open, onOpenChange }: { orgId: str
   const mutation = useMutation({
     mutationFn: async () => {
       if (!selectedTemplate) throw new Error("Choose a template");
-      return createExamFromTemplate({ template: selectedTemplate, orgId, createdBy, title: title || selectedTemplate.title, status });
+      if (!availableUntil) throw new Error("Set an expiration date so the exam does not stay open forever");
+      const untilIso = fromLocalInputValue(availableUntil);
+      if (untilIso && new Date(untilIso).getTime() <= Date.now()) throw new Error("Expiration must be in the future");
+      return createExamFromTemplate({
+        template: selectedTemplate,
+        orgId,
+        createdBy,
+        title: title || selectedTemplate.title,
+        status,
+        availableFrom: fromLocalInputValue(availableFrom),
+        availableUntil: untilIso,
+      });
     },
     onSuccess: (data) => {
       toast.success(`Exam published — join code ${data.join_code}`);
       qc.invalidateQueries({ queryKey: ["exams"] });
       onOpenChange(false);
-      setTemplateId(""); setTitle("");
+      setTemplateId(""); setTitle(""); setAvailableFrom(""); setAvailableUntil(defaultDeadlineInput(7));
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : "Could not publish exam"),
   });
@@ -99,6 +112,19 @@ function CreateExamDialog({ orgId, createdBy, open, onOpenChange }: { orgId: str
               </SelectContent>
             </Select>
           </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="e-from">Opens (optional)</Label>
+              <Input id="e-from" type="datetime-local" value={availableFrom} onChange={(e) => setAvailableFrom(e.target.value)} />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="e-until">Expires <span className="text-destructive">*</span></Label>
+              <Input id="e-until" type="datetime-local" value={availableUntil} onChange={(e) => setAvailableUntil(e.target.value)} required />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            After the expiration, students can no longer start or resume this exam and lose access until a new exam is assigned.
+          </p>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -169,11 +195,67 @@ function AssignDialog({ exam, orgId, assignedBy, open, onOpenChange }: { exam: E
   );
 }
 
+function ScheduleDialog({ exam, open, onOpenChange }: { exam: ExamWithMeta; open: boolean; onOpenChange: (o: boolean) => void }) {
+  const qc = useQueryClient();
+  const [from, setFrom] = React.useState(toLocalInputValue(exam.available_from));
+  const [until, setUntil] = React.useState(toLocalInputValue(exam.available_until) || defaultDeadlineInput(7));
+
+  React.useEffect(() => {
+    if (open) {
+      setFrom(toLocalInputValue(exam.available_from));
+      setUntil(toLocalInputValue(exam.available_until) || defaultDeadlineInput(7));
+    }
+  }, [open, exam]);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!until) throw new Error("An expiration date is required");
+      const untilIso = fromLocalInputValue(until);
+      if (untilIso && new Date(untilIso).getTime() <= Date.now()) throw new Error("Expiration must be in the future");
+      return updateExam(exam.id, { available_from: fromLocalInputValue(from), available_until: untilIso });
+    },
+    onSuccess: () => {
+      toast.success("Exam schedule updated");
+      qc.invalidateQueries({ queryKey: ["exams"] });
+      onOpenChange(false);
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : "Could not update schedule"),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Exam schedule</DialogTitle>
+          <DialogDescription>Set when “{exam.title}” opens and when it expires.</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="s-from">Opens (optional)</Label>
+            <Input id="s-from" type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="s-until">Expires <span className="text-destructive">*</span></Label>
+            <Input id="s-until" type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} required />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button onClick={() => mutation.mutate()} disabled={mutation.isPending}>
+            {mutation.isPending ? <Spinner /> : null} Save schedule
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function ExamsAdminPage() {
   const { organizationId, user } = useAuth();
   const qc = useQueryClient();
   const [createOpen, setCreateOpen] = React.useState(false);
   const [assignExam, setAssignExam] = React.useState<ExamWithMeta | null>(null);
+  const [scheduleExam, setScheduleExam] = React.useState<ExamWithMeta | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["exams", organizationId],
@@ -216,9 +298,18 @@ export default function ExamsAdminPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-semibold">{exam.title}</h3>
                     <Badge variant={exam.status === "active" ? "success" : "secondary"}>{EXAM_STATUS_LABELS[exam.status]}</Badge>
+                    {isExpired(exam.available_until) && <Badge variant="destructive"><CalendarX className="mr-1 h-3 w-3" /> Expired</Badge>}
                   </div>
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Users className="h-3.5 w-3.5" /> {exam.exam_assignments?.[0]?.count ?? 0} assigned</span>
+                    {exam.available_until && (
+                      <span className={cn("flex items-center gap-1", isExpired(exam.available_until) && "text-destructive")}>
+                        <CalendarClock className="h-3.5 w-3.5" />
+                        {isExpired(exam.available_until)
+                          ? `Expired ${format(new Date(exam.available_until), "PP")}`
+                          : `Closes ${format(new Date(exam.available_until), "PP p")}`}
+                      </span>
+                    )}
                     {exam.template && <span>From: {exam.template.title}</span>}
                     <span>Created {format(new Date(exam.created_at), "PP")}</span>
                     {exam.join_code && (
@@ -230,6 +321,7 @@ export default function ExamsAdminPage() {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => setAssignExam(exam)}><UserPlus className="h-4 w-4" /> Assign</Button>
+                  <Button variant="outline" size="sm" onClick={() => setScheduleExam(exam)}><CalendarClock className="h-4 w-4" /> Schedule</Button>
                   <Button asChild variant="ghost" size="sm"><Link to={`/reports?exam=${exam.id}`}><FileText className="h-4 w-4" /> Results</Link></Button>
                   <Select value={exam.status} onValueChange={(v) => statusMutation.mutate({ id: exam.id, status: v as ExamWithMeta["status"] })}>
                     <SelectTrigger className="h-9 w-32"><SelectValue /></SelectTrigger>
@@ -249,6 +341,9 @@ export default function ExamsAdminPage() {
       {user && <CreateExamDialog orgId={organizationId} createdBy={user.id} open={createOpen} onOpenChange={setCreateOpen} />}
       {user && assignExam && (
         <AssignDialog exam={assignExam} orgId={organizationId} assignedBy={user.id} open={!!assignExam} onOpenChange={(o) => !o && setAssignExam(null)} />
+      )}
+      {scheduleExam && (
+        <ScheduleDialog exam={scheduleExam} open={!!scheduleExam} onOpenChange={(o) => !o && setScheduleExam(null)} />
       )}
     </div>
   );

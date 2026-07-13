@@ -71,7 +71,11 @@ randomization and reuse across multiple exam templates.
 ### Exam templates & exams
 Templates define the question set, order, randomization, passing score, time limits,
 retake policy and result visibility. **Exams** are published instances of a template,
-each with a shareable join code, that get assigned to students.
+each with a shareable join code, that get assigned to students. Every exam has a
+required **expiration** (`available_until`) and an optional open date — after the
+deadline, students can no longer start or resume it (enforced both in the
+`start_exam_session` RPC and the student access gate). Admins can edit an exam's
+schedule at any time.
 
 ### Answer recording
 Records with the MediaRecorder API, uploads audio to a private Supabase Storage

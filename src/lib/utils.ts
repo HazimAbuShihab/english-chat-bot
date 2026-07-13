@@ -39,3 +39,28 @@ export function displayScore(score?: number | null, fallback = "—"): string {
   if (score == null) return fallback;
   return Number(score).toFixed(score % 1 === 0 ? 0 : 1);
 }
+
+/** Format an ISO timestamp for a <input type="datetime-local"> (local time). */
+export function toLocalInputValue(iso?: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+/** Convert a datetime-local input value back to an ISO string (UTC). */
+export function fromLocalInputValue(value: string): string | null {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
+/** A datetime-local default `days` days from now, at the current time. */
+export function defaultDeadlineInput(days: number): string {
+  return toLocalInputValue(new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString());
+}
+
+/** True if the ISO timestamp is in the past. */
+export function isExpired(iso?: string | null): boolean {
+  return !!iso && new Date(iso).getTime() < Date.now();
+}
