@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { LogOut, User as UserIcon } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -44,8 +45,8 @@ export function UserMenu() {
           </div>
         )}
         <DropdownMenuSeparator />
-        <DropdownMenuItem disabled>
-          <UserIcon /> Profile (soon)
+        <DropdownMenuItem asChild>
+          <Link to="/profile"><UserIcon /> Profile</Link>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => void signOut()} className="text-destructive focus:text-destructive">
           <LogOut /> Sign out

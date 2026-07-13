@@ -36,7 +36,20 @@ Auth, Storage, Edge Functions, RLS) — no separate Node/Java/.NET backend.
 ### Roles (RBAC)
 - **Super Admin** — platform-wide: organizations, users, global question bank, storage/usage stats.
 - **Organization Admin** — question bank, exam templates, published exams, students, results & reports.
-- **Student** — assigned exams, microphone test, exam taking, results & CEFR feedback.
+- **Student** — their single active exam, microphone test, exam taking, results & CEFR feedback.
+
+### Account / profile
+Every signed-in user has a **Profile** page to edit their name, phone, preferred
+language and first language, and to change their password (email, role and
+organization are read-only and protected server-side).
+
+### Student access gating (one-time exams)
+A student can only enter the app while they have an **active, takeable exam**
+(exam status `active`, assignment not yet submitted, within its window). Their home
+is that exam. Once they complete it, access is revoked — they see a locked
+"No active exam" screen and regain access automatically only when an administrator
+assigns them a new active exam. The exam-taking flow itself stays reachable through
+completion so the student always sees their result.
 
 ### Authentication
 - Email/password login, logout, forgot-password + reset flow.
@@ -45,9 +58,10 @@ Auth, Storage, Edge Functions, RLS) — no separate Node/Java/.NET backend.
 - Secure, auto-refreshing sessions (PKCE).
 
 ### Student flow
-Login → view assigned exams → read instructions → **test microphone** → start exam →
-answer predefined speaking questions (prep timer + recording timer) → auto-saved progress →
-submit → view results (if enabled by the exam).
+Login → land on the assigned active exam → read instructions → **test microphone** →
+start exam → answer predefined speaking questions (prep timer + recording timer) →
+auto-saved progress → submit → view results (if enabled by the exam). After completing
+their one-time exam, the student is locked out until a new active exam is assigned.
 
 ### Question bank
 Title, description, question text, optional audio prompt, CEFR level, difficulty,
@@ -196,6 +210,7 @@ downstream dashboards/reports stay identical.
 │   │   └── theme/           # ThemeProvider (dark/light/system)
 │   ├── features/
 │   │   ├── auth/            # AuthProvider, login/forgot/reset/join pages
+│   │   ├── profile/         # per-user profile & password management
 │   │   ├── dashboard/       # role-based dashboards + stats
 │   │   ├── questions/       # question bank management
 │   │   ├── exams/           # templates + published exams + assignment

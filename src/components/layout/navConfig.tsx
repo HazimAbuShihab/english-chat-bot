@@ -6,8 +6,9 @@ import {
   GraduationCap,
   Users,
   Building2,
-  BarChart3,
   FileText,
+  Mic,
+  UserCircle,
   type LucideIcon,
 } from "lucide-react";
 import type { RoleKey } from "@/lib/constants";
@@ -29,9 +30,8 @@ export function navSectionsForRole(role: RoleKey | null): NavSection[] {
     return [
       {
         items: [
-          { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-          { to: "/exams", label: "My Exams", icon: ClipboardList },
-          { to: "/results", label: "My Results", icon: BarChart3 },
+          { to: "/", label: "My Exam", icon: Mic, end: true },
+          { to: "/profile", label: "Profile", icon: UserCircle },
         ],
       },
     ];
@@ -58,6 +58,10 @@ export function navSectionsForRole(role: RoleKey | null): NavSection[] {
           { to: "/reports", label: "Results & Reports", icon: FileText },
         ],
       },
+      {
+        title: "Account",
+        items: [{ to: "/profile", label: "Profile", icon: UserCircle }],
+      },
     ];
   }
 
@@ -70,6 +74,10 @@ export function navSectionsForRole(role: RoleKey | null): NavSection[] {
           { to: "/users", label: "Users", icon: Users },
           { to: "/questions", label: "Global Question Bank", icon: FileQuestion },
         ],
+      },
+      {
+        title: "Account",
+        items: [{ to: "/profile", label: "Profile", icon: UserCircle }],
       },
     ];
   }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -45,6 +45,7 @@ type Phase = "loading" | "prep" | "recording" | "uploading" | "recorded" | "erro
 export default function ExamRunnerPage() {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const rec = useRecorder();
 
   const [index, setIndex] = React.useState(0);
@@ -197,6 +198,10 @@ export default function ExamRunnerPage() {
       await submitExamSession(sessionId);
       const res = await requestEvaluation(sessionId);
       if (!res.ok) console.warn("Evaluation deferred:", res.message);
+      // The exam is now finished; refresh the access-gate queries so the student
+      // is correctly locked out once they leave the result screen.
+      qc.invalidateQueries({ queryKey: ["active-assignment"] });
+      qc.invalidateQueries({ queryKey: ["my-assignments"] });
       rec.dispose();
       navigate(`/session/${sessionId}/result`, { replace: true });
     } catch (err) {
