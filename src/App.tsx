@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { ProtectedRoute, PublicOnlyRoute } from "@/components/common/ProtectedRoute";
 import { RoleGuard } from "@/components/common/RoleGuard";
+import { StudentAccessGate } from "@/features/student/StudentAccessGate";
 import { AppShell } from "@/components/layout/AppShell";
 import { AuthLayout } from "@/components/layout/AuthLayout";
 import { FocusLayout } from "@/components/layout/FocusLayout";
@@ -15,8 +16,7 @@ import StudentCodeLoginPage from "@/features/auth/pages/StudentCodeLoginPage";
 
 // Lazily-loaded authenticated areas keep the initial auth bundle small.
 const DashboardPage = lazy(() => import("@/features/dashboard/DashboardPage"));
-const StudentExamsPage = lazy(() => import("@/features/student/StudentExamsPage"));
-const StudentResultsPage = lazy(() => import("@/features/student/StudentResultsPage"));
+const ProfilePage = lazy(() => import("@/features/profile/ProfilePage"));
 const QuestionsPage = lazy(() => import("@/features/questions/QuestionsPage"));
 const TemplatesPage = lazy(() => import("@/features/exams/TemplatesPage"));
 const ExamsAdminPage = lazy(() => import("@/features/exams/ExamsAdminPage"));
@@ -48,31 +48,32 @@ export default function App() {
 
         {/* Authenticated */}
         <Route element={<ProtectedRoute />}>
-          {/* Main app shell */}
-          <Route element={<AppShell />}>
-            <Route index element={<DashboardPage />} />
-            <Route path="/exams" element={<StudentExamsPage />} />
-            <Route path="/results" element={<StudentResultsPage />} />
+          {/* Main app shell. Students may only enter while they have an active exam. */}
+          <Route element={<StudentAccessGate />}>
+            <Route element={<AppShell />}>
+              <Route index element={<DashboardPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
 
-            <Route element={<RoleGuard allow={["org_admin", "super_admin"]} />}>
-              <Route path="/questions" element={<QuestionsPage />} />
-            </Route>
+              <Route element={<RoleGuard allow={["org_admin", "super_admin"]} />}>
+                <Route path="/questions" element={<QuestionsPage />} />
+              </Route>
 
-            <Route element={<RoleGuard allow={["org_admin"]} />}>
-              <Route path="/templates" element={<TemplatesPage />} />
-              <Route path="/exams-admin" element={<ExamsAdminPage />} />
-              <Route path="/students" element={<StudentsPage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/reports/:sessionId" element={<ReportDetailPage />} />
-            </Route>
+              <Route element={<RoleGuard allow={["org_admin"]} />}>
+                <Route path="/templates" element={<TemplatesPage />} />
+                <Route path="/exams-admin" element={<ExamsAdminPage />} />
+                <Route path="/students" element={<StudentsPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/reports/:sessionId" element={<ReportDetailPage />} />
+              </Route>
 
-            <Route element={<RoleGuard allow={["super_admin"]} />}>
-              <Route path="/organizations" element={<OrganizationsPage />} />
-              <Route path="/users" element={<UsersPage />} />
+              <Route element={<RoleGuard allow={["super_admin"]} />}>
+                <Route path="/organizations" element={<OrganizationsPage />} />
+                <Route path="/users" element={<UsersPage />} />
+              </Route>
             </Route>
           </Route>
 
-          {/* Focused exam-taking flow (no sidebar) */}
+          {/* Focused exam-taking flow (no sidebar; ungated so results show at completion) */}
           <Route element={<FocusLayout />}>
             <Route path="/exam/:examId/intro" element={<ExamIntroPage />} />
             <Route path="/session/:sessionId" element={<ExamRunnerPage />} />

@@ -92,12 +92,13 @@ on conflict (template_id, question_id) do nothing;
 -- Demo published exam --------------------------------------------------------
 insert into public.exams
   (id, organization_id, template_id, title, description, join_code, status,
-   settings, passing_score, max_attempts, show_results_to_student)
+   available_until, settings, passing_score, max_attempts, show_results_to_student)
 values
   ('33333333-3333-3333-3333-333333333333', '11111111-1111-1111-1111-111111111111',
    '22222222-2222-2222-2222-222222222222',
    'General English Speaking Assessment', 'Placement speaking exam for new students.',
    'DEMO2026', 'active',
+   now() + interval '30 days',   -- exams should not stay open forever
    jsonb_build_object('randomize_questions', false, 'question_count', 0, 'total_time_limit_seconds', 900),
    60, 2, true)
 on conflict (id) do nothing;

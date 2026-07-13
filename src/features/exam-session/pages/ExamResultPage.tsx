@@ -53,7 +53,7 @@ export default function ExamResultPage() {
   }
 
   const { exam, evaluation } = data;
-  const backTo = role === "student" ? "/results" : "/reports";
+  const backTo = role === "student" ? "/" : "/reports";
   const resultsHidden = exam && !exam.show_results_to_student && role === "student";
 
   return (

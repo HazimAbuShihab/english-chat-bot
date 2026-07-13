@@ -4,8 +4,30 @@ import type { Enums, Tables } from "@/lib/database.types";
 export interface AssignmentWithExam extends Tables<"exam_assignments"> {
   exam: Pick<
     Tables<"exams">,
-    "id" | "title" | "description" | "status" | "available_from" | "available_until" | "passing_score" | "max_attempts"
+    "id" | "title" | "description" | "status" | "available_from" | "available_until" | "passing_score" | "max_attempts" | "settings"
   > | null;
+}
+
+/**
+ * A "takeable" assignment: the exam is active and within its window, and the
+ * student has not yet finished it (status is assigned or started). This is what
+ * grants a student access to the app — once their one-time exam is submitted it
+ * is no longer takeable and access is revoked until a new exam is assigned.
+ */
+export function isTakeable(a: AssignmentWithExam): boolean {
+  if (!a.exam) return false;
+  if (a.exam.status !== "active") return false;
+  if (a.status !== "assigned" && a.status !== "started") return false;
+  const now = Date.now();
+  if (a.exam.available_from && new Date(a.exam.available_from).getTime() > now) return false;
+  if (a.exam.available_until && new Date(a.exam.available_until).getTime() < now) return false;
+  return true;
+}
+
+/** The student's current takeable exam, or null if they have none. */
+export async function getActiveAssignment(studentId: string): Promise<AssignmentWithExam | null> {
+  const all = await getMyAssignments(studentId);
+  return all.find(isTakeable) ?? null;
 }
 
 /** All exams assigned to a student, most recent first. */
@@ -13,7 +35,7 @@ export async function getMyAssignments(studentId: string): Promise<AssignmentWit
   const { data, error } = await supabase
     .from("exam_assignments")
     .select(
-      "*, exam:exams(id, title, description, status, available_from, available_until, passing_score, max_attempts)",
+      "*, exam:exams(id, title, description, status, available_from, available_until, passing_score, max_attempts, settings)",
     )
     .eq("student_id", studentId)
     .order("created_at", { ascending: false });

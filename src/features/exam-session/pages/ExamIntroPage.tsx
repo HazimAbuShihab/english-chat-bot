@@ -1,9 +1,11 @@
 import * as React from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
 import {
   AlertTriangle,
   ArrowLeft,
+  CalendarClock,
   CheckCircle2,
   Clock,
   Mic,
@@ -22,7 +24,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Spinner, FullPageSpinner } from "@/components/ui/spinner";
 import { toast } from "@/components/ui/toaster";
-import { formatDuration } from "@/lib/utils";
+import { formatDuration, isExpired } from "@/lib/utils";
 
 async function loadIntro(examId: string, studentId: string) {
   const [{ data: exam, error: examErr }, { data: assignment }] = await Promise.all([
@@ -52,7 +54,10 @@ export default function ExamIntroPage() {
     enabled: !!examId && !!user,
   });
 
-  React.useEffect(() => () => rec.dispose(), [rec]);
+  // Dispose the microphone only when leaving the page (not on every re-render,
+  // which would reset the just-granted permission).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => () => rec.dispose(), []);
 
   if (isLoading) return <FullPageSpinner label="Loading exam…" />;
   if (!data?.exam) {
@@ -73,6 +78,7 @@ export default function ExamIntroPage() {
   const attemptsUsed = data.assignment?.attempts_used ?? 0;
   const attemptsLeft = exam.max_attempts > 0 ? Math.max(0, exam.max_attempts - attemptsUsed) : Infinity;
   const noAttempts = attemptsLeft <= 0;
+  const expired = isExpired(exam.available_until);
 
   const testRecord = async () => {
     if (rec.status === "recording") {
@@ -103,9 +109,12 @@ export default function ExamIntroPage() {
 
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="success">Ready to start</Badge>
+          <Badge variant={expired ? "destructive" : "success"}>{expired ? "Expired" : "Ready to start"}</Badge>
           {exam.max_attempts > 0 && (
             <Badge variant="secondary">{attemptsLeft === Infinity ? "Unlimited attempts" : `${attemptsLeft} attempt(s) left`}</Badge>
+          )}
+          {exam.available_until && !expired && (
+            <Badge variant="warning" className="gap-1"><CalendarClock className="h-3 w-3" /> Closes {formatDistanceToNow(new Date(exam.available_until), { addSuffix: true })}</Badge>
           )}
         </div>
         <h1 className="text-2xl font-bold tracking-tight">{exam.title}</h1>
@@ -182,9 +191,13 @@ export default function ExamIntroPage() {
 
       <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          {noAttempts ? "You have used all attempts for this exam." : "When you're ready, start the exam. The timer begins immediately."}
+          {expired
+            ? "This exam has expired and can no longer be taken."
+            : noAttempts
+              ? "You have used all attempts for this exam."
+              : "When you're ready, start the exam. The timer begins immediately."}
         </p>
-        <Button size="lg" disabled={rec.permission !== "granted" || starting || noAttempts} onClick={() => void beginExam()}>
+        <Button size="lg" disabled={rec.permission !== "granted" || starting || noAttempts || expired} onClick={() => void beginExam()}>
           {starting ? <Spinner /> : <Play className="h-4 w-4" />} Start exam
         </Button>
       </div>
