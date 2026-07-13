@@ -52,7 +52,10 @@ export default function ExamIntroPage() {
     enabled: !!examId && !!user,
   });
 
-  React.useEffect(() => () => rec.dispose(), [rec]);
+  // Dispose the microphone only when leaving the page (not on every re-render,
+  // which would reset the just-granted permission).
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => () => rec.dispose(), []);
 
   if (isLoading) return <FullPageSpinner label="Loading exam…" />;
   if (!data?.exam) {
