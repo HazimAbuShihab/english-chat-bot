@@ -1,0 +1,9 @@
+# Supabase CLI configuration.
+# Replace project_id with your own project ref, then run:
+#   supabase link --project-ref <your-project-ref>
+#   supabase db push
+#   supabase functions deploy evaluate-session
+project_id = "english-speaking-assessment"
+
+[functions.evaluate-session]
+verify_jwt = true
