@@ -67,6 +67,8 @@ export type Database = {
           session_id: string;
           skipped: boolean;
           status: Database["public"]["Enums"]["answer_status"];
+          selected_options: string[] | null;
+          is_correct: boolean | null;
           transcript: string | null;
           updated_at: string;
         };
@@ -83,6 +85,8 @@ export type Database = {
           session_id: string;
           skipped?: boolean;
           status?: Database["public"]["Enums"]["answer_status"];
+          selected_options?: string[] | null;
+          is_correct?: boolean | null;
           transcript?: string | null;
           updated_at?: string;
         };
@@ -195,6 +199,9 @@ export type Database = {
           grammar_score: number | null;
           id: string;
           improvements: string[] | null;
+          mcq_score: number | null;
+          mcq_correct: number | null;
+          mcq_total: number | null;
           organization_id: string;
           overall_score: number | null;
           pronunciation_score: number | null;
@@ -220,6 +227,9 @@ export type Database = {
           grammar_score?: number | null;
           id?: string;
           improvements?: string[] | null;
+          mcq_score?: number | null;
+          mcq_correct?: number | null;
+          mcq_total?: number | null;
           organization_id: string;
           overall_score?: number | null;
           pronunciation_score?: number | null;
@@ -538,6 +548,9 @@ export type Database = {
           id: string;
           is_active: boolean;
           max_score: number;
+          options: Json | null;
+          correct_option_keys: string[] | null;
+          question_type: Database["public"]["Enums"]["question_type"];
           organization_id: string | null;
           prep_time_seconds: number;
           question_text: string;
@@ -558,6 +571,9 @@ export type Database = {
           id?: string;
           is_active?: boolean;
           max_score?: number;
+          options?: Json | null;
+          correct_option_keys?: string[] | null;
+          question_type?: Database["public"]["Enums"]["question_type"];
           organization_id?: string | null;
           prep_time_seconds?: number;
           question_text: string;
@@ -666,6 +682,7 @@ export type Database = {
       evaluator_type: "mock" | "manual" | "ai";
       exam_status: "draft" | "scheduled" | "active" | "closed" | "archived";
       invitation_status: "pending" | "accepted" | "expired" | "revoked";
+      question_type: "speaking" | "multiple_choice";
       report_status: "pending" | "ready" | "failed";
       retake_policy: "none" | "limited" | "unlimited";
       session_status:

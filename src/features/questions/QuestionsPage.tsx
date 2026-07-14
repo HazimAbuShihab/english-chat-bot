@@ -121,7 +121,12 @@ export default function QuestionsPage() {
               {questionsQ.data.map((q) => (
                 <TableRow key={q.id}>
                   <TableCell className="max-w-xs">
-                    <p className="font-medium">{q.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">{q.title}</p>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {q.question_type === "multiple_choice" ? "MCQ" : "Speaking"}
+                      </Badge>
+                    </div>
                     <p className="line-clamp-1 text-xs text-muted-foreground">{q.question_text}</p>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">

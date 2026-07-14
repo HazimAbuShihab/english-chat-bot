@@ -79,6 +79,8 @@ export default function ExamIntroPage() {
   const attemptsLeft = exam.max_attempts > 0 ? Math.max(0, exam.max_attempts - attemptsUsed) : Infinity;
   const noAttempts = attemptsLeft <= 0;
   const expired = isExpired(exam.available_until);
+  // Older exams have no flag; default to requiring the mic (safe for speaking exams).
+  const requiresMic = settings.requires_microphone !== false;
 
   const testRecord = async () => {
     if (rec.status === "recording") {
@@ -152,6 +154,16 @@ export default function ExamIntroPage() {
         </CardContent>
       </Card>
 
+      {!requiresMic ? (
+        <Card>
+          <CardHeader><CardTitle>Microphone</CardTitle></CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CheckCircle2 className="h-4 w-4 text-success" /> This exam has no spoken questions — no microphone is needed.
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
       <Card>
         <CardHeader><CardTitle>Microphone check</CardTitle></CardHeader>
         <CardContent className="space-y-4">
@@ -188,6 +200,7 @@ export default function ExamIntroPage() {
           )}
         </CardContent>
       </Card>
+      )}
 
       <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
@@ -197,7 +210,7 @@ export default function ExamIntroPage() {
               ? "You have used all attempts for this exam."
               : "When you're ready, start the exam. The timer begins immediately."}
         </p>
-        <Button size="lg" disabled={rec.permission !== "granted" || starting || noAttempts || expired} onClick={() => void beginExam()}>
+        <Button size="lg" disabled={(requiresMic && rec.permission !== "granted") || starting || noAttempts || expired} onClick={() => void beginExam()}>
           {starting ? <Spinner /> : <Play className="h-4 w-4" />} Start exam
         </Button>
       </div>

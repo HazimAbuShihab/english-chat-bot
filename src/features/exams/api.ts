@@ -96,12 +96,21 @@ export async function createExamFromTemplate(params: {
   status?: Tables<"exams">["status"];
 }) {
   const t = params.template;
+
+  // Does this template include any spoken question? Drives the mic requirement.
+  const { count: speakingCount } = await supabase
+    .from("exam_questions")
+    .select("id, questions!inner(question_type)", { count: "exact", head: true })
+    .eq("template_id", t.id)
+    .eq("questions.question_type", "speaking");
+
   const settings = {
     instructions: t.instructions,
     randomize_questions: t.randomize_questions,
     randomize_categories: t.randomize_categories,
     question_count: t.question_count ?? 0,
     total_time_limit_seconds: t.total_time_limit_seconds ?? 0,
+    requires_microphone: (speakingCount ?? 0) > 0,
   };
   const { data, error } = await supabase
     .from("exams")

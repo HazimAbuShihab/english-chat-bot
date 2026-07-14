@@ -1,9 +1,10 @@
-import { Sparkles, TrendingUp, MessageSquareText } from "lucide-react";
+import { Sparkles, TrendingUp, MessageSquareText, ListChecks } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CefrBadge } from "@/components/common/CefrBadge";
 import { ScoreBar, ScoreRing } from "@/components/common/ScoreBar";
 import { SCORE_DIMENSIONS, CEFR_LABELS } from "@/lib/constants";
+import { displayScore } from "@/lib/utils";
 import type { Tables } from "@/lib/database.types";
 
 /** Presentation of a completed evaluation. Shared by student results & reports. */
@@ -16,6 +17,7 @@ export function EvaluationSummary({
 }) {
   const overall = evaluation.overall_score ?? 0;
   const passed = passingScore != null ? overall >= passingScore : undefined;
+  const hasSpeaking = evaluation.grammar_score != null;
 
   return (
     <div className="space-y-6">
@@ -37,11 +39,25 @@ export function EvaluationSummary({
                 {evaluation.cefr_level ? CEFR_LABELS[evaluation.cefr_level] : "Pending"}
               </p>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {SCORE_DIMENSIONS.map((dim) => (
-                <ScoreBar key={dim.key} label={dim.label} value={evaluation[dim.key] as number | null} />
-              ))}
-            </div>
+            {hasSpeaking ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {SCORE_DIMENSIONS.map((dim) => (
+                  <ScoreBar key={dim.key} label={dim.label} value={evaluation[dim.key] as number | null} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                This exam had no spoken questions, so speaking sub-skills weren't assessed.
+              </p>
+            )}
+            {evaluation.mcq_total != null && (
+              <div className="flex items-center justify-between rounded-lg border bg-muted/30 p-3 text-sm">
+                <span className="flex items-center gap-2 font-medium"><ListChecks className="h-4 w-4 text-primary" /> Multiple choice</span>
+                <span className="tabular-nums">
+                  {evaluation.mcq_correct}/{evaluation.mcq_total} correct · {displayScore(evaluation.mcq_score)}%
+                </span>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

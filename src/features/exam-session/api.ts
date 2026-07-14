@@ -1,5 +1,6 @@
 import { supabase, ANSWER_AUDIO_BUCKET } from "@/lib/supabase";
 import type { Enums, Tables } from "@/lib/database.types";
+import type { McqOption } from "@/lib/constants";
 
 export interface SessionQuestion {
   id: string;
@@ -8,6 +9,8 @@ export interface SessionQuestion {
   description: string | null;
   question_text: string;
   audio_url: string | null;
+  question_type: Enums<"question_type">;
+  options: McqOption[];
   cefr_level: Enums<"cefr_level">;
   difficulty: Enums<"difficulty_level">;
   prep_time_seconds: number;
@@ -19,6 +22,7 @@ export interface SessionQuestion {
     skipped: boolean;
     duration_seconds: number | null;
     answered_at: string | null;
+    selected_options: string[];
   } | null;
 }
 
@@ -117,6 +121,30 @@ export async function uploadAnswerAudio(params: UploadAnswerParams) {
   if (answerError) throw answerError;
 
   return audioRow.id;
+}
+
+/** Save a student's selection for a multiple-choice question. */
+export async function saveMcqAnswer(params: {
+  sessionId: string;
+  questionId: string;
+  organizationId: string;
+  position: number;
+  selectedKeys: string[];
+}) {
+  const { error } = await supabase.from("answers").upsert(
+    {
+      session_id: params.sessionId,
+      question_id: params.questionId,
+      organization_id: params.organizationId,
+      position: params.position,
+      status: "uploaded", // reused as the "answer captured" state
+      selected_options: params.selectedKeys,
+      skipped: false,
+      answered_at: new Date().toISOString(),
+    },
+    { onConflict: "session_id,question_id" },
+  );
+  if (error) throw error;
 }
 
 /** Mark a question as skipped without a recording. */

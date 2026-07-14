@@ -278,6 +278,9 @@ export function TemplateFormDialog({
                         <span className="block truncate text-sm font-medium">{q.title}</span>
                         <span className="block truncate text-xs text-muted-foreground">{q.question_text}</span>
                       </span>
+                      <Badge variant="outline" className="shrink-0 text-[10px]">
+                        {q.question_type === "multiple_choice" ? "MCQ" : "Speaking"}
+                      </Badge>
                       <CefrBadge level={q.cefr_level} />
                     </button>
                   );

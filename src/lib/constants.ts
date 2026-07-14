@@ -31,6 +31,18 @@ export const CEFR_COLORS: Record<Enums<"cefr_level">, string> = {
   C2: "bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
 };
 
+export interface McqOption {
+  key: string;
+  text: string;
+}
+
+export const QUESTION_TYPES: Enums<"question_type">[] = ["speaking", "multiple_choice"];
+
+export const QUESTION_TYPE_LABELS: Record<Enums<"question_type">, string> = {
+  speaking: "Speaking (spoken answer)",
+  multiple_choice: "Multiple choice",
+};
+
 export const DIFFICULTY_LEVELS: Enums<"difficulty_level">[] = ["easy", "medium", "hard"];
 
 export const DIFFICULTY_LABELS: Record<Enums<"difficulty_level">, string> = {
